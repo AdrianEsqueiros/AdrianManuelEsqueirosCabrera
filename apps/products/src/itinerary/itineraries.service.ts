@@ -77,7 +77,7 @@ export class ItinerariesService {
         const itineraries = await this.itineraryRepository.find({
             originCity,
             destinationCity,
-            departureTime: { $gte: currentDate.toISOString() }, // Convert current date to ISO string for database query
+            departureTime: { $gte: currentDate.toISOString() }, // Convert current date to ISO string for databaseNoSQL query
         });
 
         if (itineraries.length === 0) {
