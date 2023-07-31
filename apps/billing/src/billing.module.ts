@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
-import { RmqModule, AuthModule } from '@app/common';
+import {RmqModule, AuthModule, DatabaseModule} from '@app/common';
 import * as Joi from 'joi';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 import { ConfigModule } from '@nestjs/config';
+import {BillingsRepository} from "./billings.repository";
+import {MongooseModule} from "@nestjs/mongoose";
+import {Billing, BillingSchema} from "./schemas/billing.schema";
 
 @Module({
   imports: [
+    DatabaseModule,
+    MongooseModule.forFeature([{ name: Billing.name, schema: BillingSchema }]),
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
@@ -18,6 +23,6 @@ import { ConfigModule } from '@nestjs/config';
     AuthModule,
   ],
   controllers: [BillingController],
-  providers: [BillingService],
+  providers: [BillingService,BillingsRepository],
 })
 export class BillingModule {}

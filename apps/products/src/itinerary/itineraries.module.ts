@@ -1,20 +1,20 @@
 import { Module } from '@nestjs/common';
-import { ItinerariesService } from './itineraries.service';
-import {ItinerariesRepository} from "./itineraries.repository";
+
+import {AuthModule, RmqModule} from "@app/common";
+import {TypeOrmModule} from "@nestjs/typeorm";
+import {Itinerary} from "./entities/itinerary.entity";
 import {ItinerariesController} from "./itineraries.controller";
-import {AuthModule, DatabaseModule} from "@app/common";
-import {MongooseModule} from "@nestjs/mongoose";
-import {Itinerary, ItinerarySchema} from "./schemas/itinerary.schema";
-import {BussesRepository} from "../busses/busses.reporsitory";
-import {Bus, BusSchema} from "../busses/schemas/bus.schema";
+import {ItinerarySubscriber} from "./itinerary.subscriber";
+import {ItinerariesService} from "./itineraries.service";
+import {BussesModule} from "../busses/busses.module";
 
 @Module({
-  imports:[
-      DatabaseModule,
-      AuthModule,
-      MongooseModule.forFeature([{name: Itinerary.name, schema: ItinerarySchema},{name: Bus.name,schema:BusSchema}])
-  ],
-  controllers:[ItinerariesController],
-  providers: [ItinerariesService, ItinerariesRepository, BussesRepository]
+    imports:[
+      AuthModule,RmqModule,BussesModule,
+      TypeOrmModule.forFeature([Itinerary]),
+    ],
+    controllers:[ItinerariesController],
+    providers: [ItinerarySubscriber, ItinerariesService],
+    exports:[ItinerariesService]
 })
 export class ItinerariesModule {}

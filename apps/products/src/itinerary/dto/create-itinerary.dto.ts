@@ -1,34 +1,41 @@
 import {
-  IsDateString,
+  IsDateString, IsEnum, IsInt,
   IsNotEmpty, IsNumber,
   IsPositive,
   IsString,
 } from 'class-validator';
-import {Types} from "mongoose";
+import {Column, Entity} from "typeorm";
+import {Bus} from "../../busses/entities/bus.entity";
+import {Provinces} from "../enums/provinces";
 
-export class CreateItineraryRequest {
+export class CreateItineraryDto {
+
+  @Column()
   @IsNotEmpty()
-  @IsString()
-  originCity: string;
+  @IsEnum(Provinces)
+  origin_city: string;
 
+  @Column()
   @IsNotEmpty()
-  @IsString()
-  destinationCity: string;
+  @IsEnum(Provinces)
+  destination_city: string;
 
+  @Column()
   @IsNotEmpty()
   @IsDateString()
-  departureTime: Date;
+  departure_time: Date;
 
+  @Column()
   @IsNotEmpty()
   @IsDateString()
-  arrivalTime: Date;
+  arrival_time: Date;
 
+  @Column()
   @IsNotEmpty()
   @IsNumber()
   @IsPositive()
   price: number;
 
-  @IsNotEmpty()
-  @IsString()
-  busId: string;
+  bus:Bus;
+
 }

@@ -1,19 +1,18 @@
 import { Module } from '@nestjs/common';
-import {MongooseModule} from "@nestjs/mongoose";
-import {Bus, BusSchema} from "./schemas/bus.schema";
 import {BussesService} from "./busses.service";
-import {BussesRepository} from "./busses.reporsitory";
 import {BussesController} from "./busses.controller";
-import {AuthModule, DatabaseModule} from "@app/common";
+import {AuthModule} from "@app/common";
+import {TypeOrmModule} from "@nestjs/typeorm";
+import {BusSubscriber} from "./bus.subscriber";
+import {Bus} from "./entities/bus.entity";
 
 @Module({
     imports: [
-        DatabaseModule,
         AuthModule,
-        MongooseModule.forFeature([{name: Bus.name, schema: BusSchema}]),
+        TypeOrmModule.forFeature([Bus]),
     ],
     controllers: [BussesController],
-    providers: [BussesService,BussesRepository],
-    exports: [BussesService,BussesRepository],
+    providers: [BussesService,BusSubscriber],
+    exports: [BussesService],
 })
 export class BussesModule {}

@@ -4,26 +4,26 @@ import {
   EventSubscriber,
   InsertEvent,
 } from 'typeorm';
-import { Item } from './entities/item.entity';
 import { Logger } from '@nestjs/common';
+import {Bus} from "./entities/bus.entity";
 
 @EventSubscriber()
-export class ItemSubscriber implements EntitySubscriberInterface<Item> {
-  private readonly logger = new Logger(ItemSubscriber.name);
+export class BusSubscriber implements EntitySubscriberInterface<Bus> {
+  private readonly logger = new Logger(BusSubscriber.name);
 
   constructor(dataSource: DataSource) {
     dataSource.subscribers.push(this);
   }
 
   listenTo() {
-    return Item;
+    return Bus;
   }
 
-  beforeInsert(event: InsertEvent<Item>): void | Promise<any> {
+  beforeInsert(event: InsertEvent<Bus>): void | Promise<any> {
     this.logger.log(`beforeInsert`, JSON.stringify(event.entity));
   }
 
-  afterInsert(event: InsertEvent<Item>): void | Promise<any> {
+  afterInsert(event: InsertEvent<Bus>): void | Promise<any> {
     this.logger.log(`afterInsert`, JSON.stringify(event.entity));
   }
 }

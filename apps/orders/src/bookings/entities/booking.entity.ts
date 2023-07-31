@@ -1,23 +1,21 @@
 import { Column, Entity } from 'typeorm';import {AbstractEntity} from "@app/common/databaseSQL/abstract.entity";
+import {SeatType} from "../enums/seatType";
 
 @Entity({name:'bookings'})
 export class Booking extends AbstractEntity<Booking> {
 
     @Column()
-    itinerary: number;
+    itinerary_id: number;
 
     @Column()
-    passenger: number;
+    passenger_id: string;
+
+    @Column({ type: 'enum', enum: SeatType})
+    seat_type: string;
 
     @Column()
-    bus: number;
-
-    @Column({ type: 'enum', enum: ['Turista', 'Ejecutivo', 'Premium'] })
-    seatType: 'Turista' | 'Ejecutivo' | 'Premium';
-
-    @Column()
-    seatsCount: number;
+    seats_count: number;
 
     @Column({ type: 'decimal', precision: 10, scale: 2 })
-    totalPrice: number;
+    total_price: number;
 }
