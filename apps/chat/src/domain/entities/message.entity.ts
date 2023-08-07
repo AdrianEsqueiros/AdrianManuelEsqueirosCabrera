@@ -25,5 +25,5 @@ export class MessageEntity {
     default: () => 'CURRENT_TIMESTAMP(0)',
     update: false,
   })
-  created_at: string;
+  createdAt: string;
 }
