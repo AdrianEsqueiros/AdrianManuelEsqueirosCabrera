@@ -1,39 +1,57 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
-import { RmqModule, DatabaseModule } from '@app/common';
-import * as Joi from 'joi';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+
+import { SharedModule } from '@app/shared/modules/shared.module';
+import { UserRepository } from '@app/shared/respositories/user.repository';
+import { DatabaseModule } from '@app/shared/modules/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { SharedService } from '@app/shared/services/shared.service';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigType } from '@nestjs/config';
+import config from '../../../config';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { LocalStrategy } from './strategies/local.strategy';
-import { UsersModule } from './users/users.module';
+import { JwtGuard } from './guards/jwt.guard';
+import { ALL_ENTITIES } from '@app/shared/entities';
 
 @Module({
   imports: [
-    DatabaseModule,
-    UsersModule,
-    RmqModule,
-    ConfigModule.forRoot({
-      isGlobal: true,
-      validationSchema: Joi.object({
-        JWT_SECRET: Joi.string().required(),
-        JWT_EXPIRATION: Joi.string().required(),
-        MONGODB_URI: Joi.string().required(),
-      }),
-      envFilePath: './apps/auth/.env',
-    }),
+    SharedModule,
+
     JwtModule.registerAsync({
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+      useFactory: (configService: ConfigType<typeof config>) => ({
+        secret: configService.auth.access,
         signOptions: {
-          expiresIn: `${configService.get('JWT_EXPIRATION')}s`,
+          expiresIn: '1d',
         },
       }),
-      inject: [ConfigService],
+      inject: [config.KEY],
     }),
+    DatabaseModule,
+    TypeOrmModule.forFeature(ALL_ENTITIES),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [
+    JwtGuard,
+    JwtStrategy,
+
+    {
+      provide: 'UserRepositoryInterface',
+      useClass: UserRepository,
+    },
+    {
+      provide: 'AuthServiceInterface',
+      useClass: AuthService,
+    },
+    {
+      provide: 'SharedServiceInterface',
+      useClass: SharedService,
+    },
+    {
+      provide: 'AuthServiceInterface',
+      useClass: AuthService,
+    },
+  ],
 })
 export class AuthModule {}

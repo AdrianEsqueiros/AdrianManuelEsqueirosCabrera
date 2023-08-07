@@ -1,29 +1,67 @@
-import { Controller, Post, Res, UseGuards } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
-import { Response } from 'express';
-import { AuthService } from './auth.service';
-import { CurrentUser } from './current-user.decorator';
-import JwtAuthGuard from './guards/jwt-auth.guard';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { User } from './users/schemas/user.schema';
+import { Controller, Inject, UseGuards } from '@nestjs/common';
 
-@Controller('auth')
+import {
+  Ctx,
+  MessagePattern,
+  Payload,
+  RmqContext,
+} from '@nestjs/microservices';
+import { SharedService } from '@app/shared/services/shared.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { SigninDto } from './dto/signin-dto';
+import { JwtGuard } from './guards/jwt.guard';
+import { AuthServiceInterface } from './interfaces/auth.service.interface';
+
+@Controller()
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    @Inject('AuthServiceInterface')
+    private readonly authService: AuthServiceInterface,
+    @Inject('SharedServiceInterface')
+    private readonly sharedService: SharedService,
+  ) {}
 
-  @UseGuards(LocalAuthGuard)
-  @Post('login')
-  async login(
-    @CurrentUser() user: User,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    await this.authService.login(user, response);
-    response.send(user);
+  @MessagePattern({ cmd: 'register' })
+  async register(@Ctx() ctx: RmqContext, @Payload() dto: CreateUserDto) {
+    this.sharedService.acknowledgeMessage(ctx);
+    return this.authService.register(dto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @MessagePattern('validate_user')
-  async validateUser(@CurrentUser() user: User) {
-    return user;
+  @MessagePattern({ cmd: 'signin' })
+  async signin(@Ctx() ctx: RmqContext, @Payload() dto: SigninDto) {
+    this.sharedService.acknowledgeMessage(ctx);
+    return this.authService.login(dto);
+  }
+
+  @MessagePattern({ cmd: 'verify-jwt' })
+  @UseGuards(JwtGuard)
+  async verifyJwt(@Ctx() ctx: RmqContext, @Payload() payload: { jwt: string }) {
+    this.sharedService.acknowledgeMessage(ctx);
+    return this.authService.verifyJwtToken(payload.jwt);
+  }
+
+  @MessagePattern({ cmd: 'decode-jwt' })
+  async decodeJwt(@Ctx() ctx: RmqContext, @Payload() payload: { jwt: string }) {
+    this.sharedService.acknowledgeMessage(ctx);
+    return this.authService.decodeJwtToken(payload.jwt);
+  }
+
+  @MessagePattern({ cmd: 'get-onroads-team' })
+  async getOnroadsTeam(
+    @Ctx() ctx: RmqContext,
+    @Payload() payload: { userId: number },
+  ) {
+    this.sharedService.acknowledgeMessage(ctx);
+    return this.authService.getOnroadsTeam(payload.userId);
+  }
+
+  @MessagePattern({ cmd: 'get-user' })
+  async getUserById(
+    @Ctx() context: RmqContext,
+    @Payload() user: { id: number },
+  ) {
+    this.sharedService.acknowledgeMessage(context);
+
+    return this.authService.getUserById(user.id);
   }
 }
