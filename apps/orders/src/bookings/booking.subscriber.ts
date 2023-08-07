@@ -5,7 +5,7 @@ import {
   InsertEvent,
 } from 'typeorm';
 import { Logger } from '@nestjs/common';
-import {Booking} from "./entities/booking.entity";
+import { Booking } from './entities/booking.entity';
 
 @EventSubscriber()
 export class BookingSubscriber implements EntitySubscriberInterface<Booking> {

@@ -1,8 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {BillingsRepository} from "./billings.repository";
-import {Billing} from "./schemas/billing.schema";
-import {FilterQuery} from "mongoose";
-
+import { BillingsRepository } from './billings.repository';
 
 @Injectable()
 export class BillingService {
@@ -14,13 +11,17 @@ export class BillingService {
   }
 
   async billing(data: any) {
-    const {user} = data
-    const {password, ...safeUser}=user
-    const processData = {...data,user:safeUser}
-    this.logger.log('Billing...',processData);
+    const { user } = data;
+    const { password, ...safeUser } = user;
+    const processData = { ...data, user: safeUser };
+    this.logger.log('Billing...', processData);
     await this.billingsRepository.create(processData);
   }
-  async findBillingsByUser(id: any):Promise<Billing>{
-    return this.billingsRepository.find({passenger_id:id})
+  async findBillingsByUser(id: any) {
+    return this.billingsRepository.find({ passenger_id: id });
+  }
+  bill(data: any) {
+    this.logger.log('Billing...', data);
+    return this.billingsRepository.create(data);
   }
 }

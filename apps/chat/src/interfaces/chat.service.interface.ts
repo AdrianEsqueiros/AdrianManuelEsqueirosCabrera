@@ -1,6 +1,6 @@
-import { MessageEntity } from '@app/shared/entities/message.entity';
 import { CreateMessageDto } from '../dto/create-message.dto';
-import { ConversationEntity } from '@app/shared/entities/conversation.entity';
+import { ConversationEntity } from '../domain/entities/conversation.entity';
+import { MessageEntity } from '../domain/entities/message.entity';
 
 export interface ChatServiceInterface {
   createMessage(dto: CreateMessageDto, userId: number): Promise<MessageEntity>;

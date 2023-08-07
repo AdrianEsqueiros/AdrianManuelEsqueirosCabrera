@@ -3,15 +3,11 @@ import {
   Entity,
   Column,
   OneToMany,
-
   ManyToMany,
 } from 'typeorm';
-import {Role} from "@app/common/enums/role.enum";
-import {MessageEntity} from "../../../chat/src/entities/message.entity";
-import {ConversationEntity} from "../../../chat/src/entities/conversation.entity";
-
-
-
+import { Role } from '@app/common';
+import { MessageEntity } from '../../../../chat/src/domain/entities/message.entity';
+import { ConversationEntity } from '../../../../chat/src/domain/entities/conversation.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -30,7 +26,7 @@ export class UserEntity {
   @Column({
     type: 'enum',
     enum: Role,
-    default: Role.CUSTOMER,
+    default: Role.PASSENGER,
   })
   role: Role;
 
@@ -42,7 +38,11 @@ export class UserEntity {
     (conversationEntity) => conversationEntity.users,
   )
   conversations: ConversationEntity[];
-
-  // @OneToOne(() => CartEntity, (cart) => cart.user)
-  // cart: CartEntity;
+  @Column({
+    type: 'timestamp',
+    precision: 0,
+    default: () => 'CURRENT_TIMESTAMP(0)',
+    update: false,
+  })
+  created_at: string;
 }

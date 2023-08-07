@@ -25,10 +25,9 @@ export class RolesGuard implements CanActivate {
 
     if (!isAuth) {
       throw new UnauthorizedException(
-        'No tienes permisios para realizar esta acción',
+        `El usuario tipo ${user.role} no tienes permisios para realizar esta acción`,
       );
     }
-
     return true;
   }
 }

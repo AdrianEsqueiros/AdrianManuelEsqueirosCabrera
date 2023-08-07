@@ -1,4 +1,4 @@
 export enum Role {
-  CUSTOMER = 'customer',
+  PASSENGER = 'passenger',
   ONROAD = 'onroad',
 }

@@ -1,8 +1,8 @@
-import { sendMicroserviceMessage } from '@app/shared/utils/send-message-microservice';
+import { sendMicroserviceMessage } from '@app/common';
 import { Body, Controller, Inject, Post } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { CreateUserDto } from 'apps/auth/src/dto/create-user.dto';
-import { SigninDto } from 'apps/auth/src/dto/signin-dto';
+import { SignInDto } from '../../../auth/src/dto/sign-in-dto';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Users')
@@ -15,18 +15,18 @@ export class UsersController {
   @Post('/register')
   @ApiOperation({
     summary: 'Register a new user',
-    description: 'This endpoint is used to register a new user',
+    description: 'Register a new user',
   })
   async register(@Body() dto: CreateUserDto) {
     return sendMicroserviceMessage(this.authService, 'register', dto);
   }
 
-  @Post('/signin')
+  @Post('/login')
   @ApiOperation({
-    summary: 'Signin a user',
-    description: 'This endpoint is used to signin a user',
+    summary: 'Login a user',
+    description: 'Login a user',
   })
-  async signin(@Body() dto: SigninDto) {
-    return sendMicroserviceMessage(this.authService, 'signin', dto);
+  async signIn(@Body() dto: SignInDto) {
+    return sendMicroserviceMessage(this.authService, 'signIn', dto);
   }
 }

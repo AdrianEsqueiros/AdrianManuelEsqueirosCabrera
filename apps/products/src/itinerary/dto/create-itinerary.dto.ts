@@ -1,41 +1,47 @@
-import {
-  IsDateString, IsEnum, IsInt,
-  IsNotEmpty, IsNumber,
-  IsPositive,
-  IsString,
-} from 'class-validator';
-import {Column, Entity} from "typeorm";
-import {Bus} from "../../busses/entities/bus.entity";
-import {Provinces} from "../enums/provinces";
+import { IsDateString, IsEnum, IsNotEmpty } from 'class-validator';
+import { Column } from 'typeorm';
+import { Bus } from '../../busses/entities/bus.entity';
+import { Provinces } from '../enums/provinces';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateItineraryDto {
-
+  @ApiProperty({ enum: Provinces, description: 'Origin city of the itinerary' })
   @Column()
   @IsNotEmpty()
   @IsEnum(Provinces)
-  origin_city: string;
+  originCity: string;
 
+  @ApiProperty({
+    enum: Provinces,
+    description: 'Destination city of the itinerary',
+  })
   @Column()
   @IsNotEmpty()
   @IsEnum(Provinces)
-  destination_city: string;
+  destinationCity: string;
 
+  @ApiProperty({ type: Date, description: 'Departure time of the itinerary' })
   @Column()
   @IsNotEmpty()
   @IsDateString()
-  departure_time: Date;
+  departureTime: Date;
 
+  @ApiProperty({ type: Date, description: 'Arrival time of the itinerary' })
   @Column()
   @IsNotEmpty()
   @IsDateString()
-  arrival_time: Date;
+  arrivalTime: Date;
 
+  @ApiProperty({
+    example: 10,
+    type: Number,
+    description: 'Price of the itinerary',
+    minimum: 0,
+  })
   @Column()
   @IsNotEmpty()
-  @IsNumber()
-  @IsPositive()
   price: number;
 
-  bus:Bus;
-
+  @ApiProperty({ example: 1, required: true, type: 'number' })
+  bus: Bus;
 }

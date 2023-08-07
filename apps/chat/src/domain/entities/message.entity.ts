@@ -1,12 +1,6 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  CreateDateColumn,
-} from 'typeorm';
-import { UserEntity } from './user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { ConversationEntity } from './conversation.entity';
+import { UserEntity } from '../../../../auth/src/domain/entity/user.entity';
 
 @Entity('messages')
 export class MessageEntity {
@@ -25,8 +19,11 @@ export class MessageEntity {
   )
   conversation: ConversationEntity;
 
-  @CreateDateColumn({
-    name: 'created_at',
+  @Column({
+    type: 'timestamp',
+    precision: 0,
+    default: () => 'CURRENT_TIMESTAMP(0)',
+    update: false,
   })
-  createdAt: Date;
+  created_at: string;
 }

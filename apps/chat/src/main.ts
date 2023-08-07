@@ -1,18 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ChatModule } from './chat.module';
-import { ConfigService } from '@nestjs/config';
-import { SharedService } from '@app/shared/services/shared.service';
+import { CHAT, RmqService } from '@app/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(ChatModule);
-  const configService = app.get(ConfigService);
-  const sharedService = app.get(SharedService);
-
-  const QUEUE = configService.get('RABBITMQ_CHAT_QUEUE');
-
-  app.connectMicroservice(sharedService.getRmqOptions(QUEUE));
+  const sharedService = app.get(RmqService);
+  app.connectMicroservice(sharedService.getRmqOptions(CHAT));
   await app.startAllMicroservices();
 
-  await app.listen(7000);
+  await app.listen(8000);
 }
 bootstrap();

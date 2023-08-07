@@ -6,11 +6,11 @@ import {
   Payload,
   RmqContext,
 } from '@nestjs/microservices';
-import { SharedService } from '@app/shared/services/shared.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { SigninDto } from './dto/signin-dto';
+import { SignInDto } from './dto/sign-in-dto';
 import { JwtGuard } from './guards/jwt.guard';
 import { AuthServiceInterface } from './interfaces/auth.service.interface';
+import { RmqService } from '@app/common';
 
 @Controller()
 export class AuthController {
@@ -18,40 +18,46 @@ export class AuthController {
     @Inject('AuthServiceInterface')
     private readonly authService: AuthServiceInterface,
     @Inject('SharedServiceInterface')
-    private readonly sharedService: SharedService,
+    private readonly sharedService: RmqService,
   ) {}
 
   @MessagePattern({ cmd: 'register' })
-  async register(@Ctx() ctx: RmqContext, @Payload() dto: CreateUserDto) {
-    this.sharedService.acknowledgeMessage(ctx);
+  async register(@Ctx() context: RmqContext, @Payload() dto: CreateUserDto) {
+    this.sharedService.acknowledgeMessage(context);
     return this.authService.register(dto);
   }
 
-  @MessagePattern({ cmd: 'signin' })
-  async signin(@Ctx() ctx: RmqContext, @Payload() dto: SigninDto) {
-    this.sharedService.acknowledgeMessage(ctx);
+  @MessagePattern({ cmd: 'signIn' })
+  async signIn(@Ctx() context: RmqContext, @Payload() dto: SignInDto) {
+    this.sharedService.acknowledgeMessage(context);
     return this.authService.login(dto);
   }
 
   @MessagePattern({ cmd: 'verify-jwt' })
   @UseGuards(JwtGuard)
-  async verifyJwt(@Ctx() ctx: RmqContext, @Payload() payload: { jwt: string }) {
-    this.sharedService.acknowledgeMessage(ctx);
-    return this.authService.verifyJwtToken(payload.jwt);
+  async verifyJwt(
+    @Ctx() context: RmqContext,
+    @Payload() payload: { jwt: string },
+  ) {
+    this.sharedService.acknowledgeMessage(context);
+    return await this.authService.verifyJwtToken(payload.jwt);
   }
 
   @MessagePattern({ cmd: 'decode-jwt' })
-  async decodeJwt(@Ctx() ctx: RmqContext, @Payload() payload: { jwt: string }) {
-    this.sharedService.acknowledgeMessage(ctx);
+  async decodeJwt(
+    @Ctx() context: RmqContext,
+    @Payload() payload: { jwt: string },
+  ) {
+    this.sharedService.acknowledgeMessage(context);
     return this.authService.decodeJwtToken(payload.jwt);
   }
 
   @MessagePattern({ cmd: 'get-onroads-team' })
   async getOnroadsTeam(
-    @Ctx() ctx: RmqContext,
+    @Ctx() context: RmqContext,
     @Payload() payload: { userId: number },
   ) {
-    this.sharedService.acknowledgeMessage(ctx);
+    this.sharedService.acknowledgeMessage(context);
     return this.authService.getOnroadsTeam(payload.userId);
   }
 
@@ -61,7 +67,6 @@ export class AuthController {
     @Payload() user: { id: number },
   ) {
     this.sharedService.acknowledgeMessage(context);
-
     return this.authService.getUserById(user.id);
   }
 }

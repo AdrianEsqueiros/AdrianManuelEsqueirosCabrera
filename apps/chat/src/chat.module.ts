@@ -1,25 +1,29 @@
 import { Module } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { SharedModule } from '@app/shared/modules/shared.module';
-import { DatabaseModule } from '@app/shared/modules/database.module';
-import { RedisModule } from '@app/shared/modules/redis.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChatGateway } from './chat.gateway';
-import { MessageRepository } from '@app/shared/respositories/messages.repository';
-import { ConversationRepository } from '@app/shared/respositories/conversations.repository';
-
-import { ALL_ENTITIES } from '@app/shared/entities';
+import {
+  AUTH,
+  DatabaseSQLModule,
+  RedisModule,
+  SharedModule,
+} from '@app/common';
+import { MessageRepository } from './persistance/messages.repository';
+import { ConversationRepository } from './persistance/conversations.repository';
+import { ConversationEntity } from './domain/entities/conversation.entity';
+import { MessageEntity } from './domain/entities/message.entity';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    DatabaseModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: './apps/chat/.env',
+    }),
+    DatabaseSQLModule,
     RedisModule,
-    SharedModule.registerRmq('AUTH_SERVICE', process.env.RABBITMQ_AUTH_QUEUE),
-    SharedModule.registerRmq(
-      'PRESENCE_SERVICE',
-      process.env.RABBITMQ_PRESENCE_QUEUE,
-    ),
-    TypeOrmModule.forFeature(ALL_ENTITIES),
+    SharedModule.registerRmq('AUTH_SERVICE', AUTH),
+    TypeOrmModule.forFeature([ConversationEntity, MessageEntity]),
   ],
   controllers: [],
   providers: [

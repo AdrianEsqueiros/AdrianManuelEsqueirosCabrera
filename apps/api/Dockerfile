@@ -8,7 +8,7 @@ RUN npm install -f
 
 COPY . .
 
-RUN npm run build billing
+RUN npm run build api
 
 FROM node:alpine as production
 

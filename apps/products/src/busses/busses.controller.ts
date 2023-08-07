@@ -1,24 +1,51 @@
-import {Body, Controller, Get, Post, Req, UseGuards} from '@nestjs/common';
-import {BussesService} from "./busses.service";
-import {JwtAuthGuard, RmqService} from "@app/common";
-import {CreateBusDto} from "./dto/create-bus.dto";
+import { BadRequestException, Controller, Inject } from '@nestjs/common';
+import { BussesService } from './busses.service';
+import { CreateBusDto } from './dto/create-bus.dto';
+import { SharedServiceInterface } from '@app/common';
+import {
+  Ctx,
+  MessagePattern,
+  Payload,
+  RmqContext,
+  RpcException,
+} from '@nestjs/microservices';
+import { Bus } from './entities/bus.entity';
 
-@Controller('busses')
+@Controller()
 export class BussesController {
-    constructor(
-        private readonly bussesService: BussesService,
-        private readonly rmqService: RmqService
-    ) {}
+  constructor(
+    private readonly bussesService: BussesService,
+    @Inject('SharedServiceInterface')
+    private sharedService: SharedServiceInterface,
+  ) {}
 
-    @Post()
-    @UseGuards(JwtAuthGuard)
-    async createBuses(@Body() request: CreateBusDto){
-        return await this.bussesService.createBus(request);
+  @MessagePattern({ cmd: 'create_buses' })
+  async createBooking(
+    @Ctx() context: RmqContext,
+    @Payload() request: CreateBusDto,
+  ): Promise<Bus> {
+    try {
+      const bus = await this.bussesService.createBus(request);
+      this.sharedService.acknowledgeMessage(context);
+      if (!bus) {
+        throw new RpcException(`No se pudo crear el bus.`);
+      }
+      return bus;
+    } catch (e) {
+      throw new RpcException(e);
     }
-
-    @Get()
-    @UseGuards(JwtAuthGuard)
-    async getBuses(){
-        return this.bussesService.getBuses();
+  }
+  @MessagePattern({ cmd: 'get_busses' })
+  async getBusses(@Ctx() context: RmqContext): Promise<Bus[]> {
+    try {
+      const bus = this.bussesService.getBuses();
+      this.sharedService.acknowledgeMessage(context);
+      if (!bus) {
+        throw new BadRequestException(`No se pudo obtener los buses.`);
+      }
+      return bus;
+    } catch (e) {
+      return;
     }
+  }
 }

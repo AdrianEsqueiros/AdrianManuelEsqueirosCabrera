@@ -8,7 +8,7 @@ RUN npm install -f
 
 COPY . .
 
-RUN npm run build
+RUN npm run build orders
 
 FROM node:alpine as production
 

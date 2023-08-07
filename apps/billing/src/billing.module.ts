@@ -1,16 +1,23 @@
 import { Module } from '@nestjs/common';
-import {RmqModule, AuthModule, DatabaseModule} from '@app/common';
+import {
+  RmqModule,
+  DatabaseModule,
+  RmqService,
+  SharedModule,
+  AUTH,
+} from '@app/common';
 import * as Joi from 'joi';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 import { ConfigModule } from '@nestjs/config';
-import {BillingsRepository} from "./billings.repository";
-import {MongooseModule} from "@nestjs/mongoose";
-import {Billing, BillingSchema} from "./schemas/billing.schema";
+import { BillingsRepository } from './billings.repository';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Billing, BillingSchema } from './schemas/billing.schema';
 
 @Module({
   imports: [
     DatabaseModule,
+    RmqModule,
     MongooseModule.forFeature([{ name: Billing.name, schema: BillingSchema }]),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -19,10 +26,16 @@ import {Billing, BillingSchema} from "./schemas/billing.schema";
         RABBIT_MQ_BILLING_QUEUE: Joi.string().required(),
       }),
     }),
-    RmqModule,
-    AuthModule,
+    SharedModule.registerRmq('AUTH_SERVICE', AUTH),
   ],
   controllers: [BillingController],
-  providers: [BillingService,BillingsRepository],
+  providers: [
+    BillingService,
+    BillingsRepository,
+    {
+      provide: 'SharedServiceInterface',
+      useClass: RmqService,
+    },
+  ],
 })
 export class BillingModule {}

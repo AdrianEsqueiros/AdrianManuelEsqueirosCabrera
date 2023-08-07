@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RmqContext, RmqOptions, Transport } from '@nestjs/microservices';
+import { SharedServiceInterface } from '@app/common/interface/services/shared.service.interface';
 
 @Injectable()
-export class RmqService {
+export class RmqService implements SharedServiceInterface {
   constructor(private readonly configService: ConfigService) {}
 
-  getOptions(queue: string, noAck = false): RmqOptions {
+  getRmqOptions(queue: string, noAck = false): RmqOptions {
     return {
       transport: Transport.RMQ,
       options: {
@@ -18,7 +19,7 @@ export class RmqService {
     };
   }
 
-  ack(context: RmqContext) {
+  acknowledgeMessage(context: RmqContext) {
     const channel = context.getChannelRef();
     const originalMessage = context.getMessage();
     channel.ack(originalMessage);

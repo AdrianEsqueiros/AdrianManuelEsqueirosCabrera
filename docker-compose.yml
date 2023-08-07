@@ -1,6 +1,65 @@
 networks:
   default:
 services:
+  rabbitmq:
+    image: rabbitmq
+    ports:
+      - '5672:5672'
+  mongodb-primary:
+    image: docker.io/bitnami/mongodb:5.0
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-primary
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_ROOT_PASSWORD=password123
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    volumes:
+      - 'mongodb_master_data:/bitnami/mongodb'
+    ports:
+      - '27018:27017'
+  redis:
+    image: redis
+    command: /bin/sh -c "redis-server --requirepass password"
+    environment:
+      - REDIS_PASSWORD=password
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+      - REDIS_DATABASE=0
+      - REDIS_PORT=6379
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis/data:/data
+  mysql-db:
+    container_name: mysql-db
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQLDB_PASSWORD
+    ports:
+      - $MYSQLDB_LOCAL_PORT:$MYSQLDB_DOCKER_PORT
+    volumes:
+      - mysql-volume:/var/lib/mysql:rw
+      - ./mysql-db:/docker-entrypoint-initdb.d/
+    networks:
+      - default
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+      target: development
+    command: npm run start:dev api
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      - rabbitmq
+      - auth
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '5000:5000'
   orders:
     build:
       context: .
@@ -11,16 +70,11 @@ services:
       - ./apps/orders/.env
     depends_on:
       - mongodb-primary
-      - mongodb-secondary
-      - mongodb-arbiter
-      - billing
-      - auth
       - rabbitmq
+      - auth
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    ports:
-      - '3000:3000'
   products:
     build:
       context: .
@@ -37,16 +91,12 @@ services:
       - ./apps/products/.env
     depends_on:
       - mongodb-primary
-      - mongodb-secondary
-      - mongodb-arbiter
-      - auth
       - rabbitmq
       - mysql-db
+      - auth
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    ports:
-      - '3002:3002'
   billing:
     build:
       context: .
@@ -57,15 +107,11 @@ services:
       - ./apps/billing/.env
     depends_on:
       - mongodb-primary
-      - mongodb-secondary
-      - mongodb-arbiter
       - rabbitmq
       - auth
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    ports:
-      - '3005:3005'
   chat:
     build:
       context: .
@@ -78,77 +124,21 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     ports:
-      - '3004:3005'
+      - '4001:4001'
   auth:
     build:
       context: .
       dockerfile: ./apps/auth/Dockerfile
       target: development
     command: npm run start:dev auth
-    ports:
-      - '3001:3001'
     env_file:
       - ./apps/auth/.env
     depends_on:
       - mongodb-primary
-      - mongodb-secondary
-      - mongodb-arbiter
       - rabbitmq
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-  rabbitmq:
-    image: rabbitmq
-    ports:
-      - '5672:5672'
-  mongodb-primary:
-    image: docker.io/bitnami/mongodb:5.0
-    environment:
-      - MONGODB_ADVERTISED_HOSTNAME=mongodb-primary
-      - MONGODB_REPLICA_SET_MODE=primary
-      - MONGODB_ROOT_PASSWORD=password123
-      - MONGODB_REPLICA_SET_KEY=replicasetkey123
-    volumes:
-      - 'mongodb_master_data:/bitnami/mongodb'
-    ports:
-      - '27018:27017'
-  mongodb-secondary:
-    image: docker.io/bitnami/mongodb:5.0
-    depends_on:
-      - mongodb-primary
-    environment:
-      - MONGODB_ADVERTISED_HOSTNAME=mongodb-secondary
-      - MONGODB_REPLICA_SET_MODE=secondary
-      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=password123
-      - MONGODB_REPLICA_SET_KEY=replicasetkey123
-  mongodb-arbiter:
-    image: docker.io/bitnami/mongodb:5.0
-    depends_on:
-      - mongodb-primary
-    environment:
-      - MONGODB_ADVERTISED_HOSTNAME=mongodb-arbiter
-      - MONGODB_REPLICA_SET_MODE=arbiter
-      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=password123
-      - MONGODB_REPLICA_SET_KEY=replicasetkey123
-  mysql-db:
-    container_name:  mysql-db
-    image: mysql:5.7
-    # NOTE: use of "mysql_native_password" is not recommended: https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password
-    # (this is just an example, not intended to be a production configuration)
-    command: --default-authentication-plugin=mysql_native_password
-    restart: unless-stopped
-    env_file: ./.env
-    environment:
-      MYSQL_ROOT_PASSWORD: $MYSQLDB_PASSWORD
-    ports:
-      - $MYSQLDB_LOCAL_PORT:$MYSQLDB_DOCKER_PORT
-    volumes:
-      - mysql-volume:/var/lib/mysql:rw
-      - ./mysql-db:/docker-entrypoint-initdb.d/
-    networks:
-      - default
 
 volumes:
   mongodb_master_data:

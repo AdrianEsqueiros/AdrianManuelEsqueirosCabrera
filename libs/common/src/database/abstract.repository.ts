@@ -5,7 +5,8 @@ import {
   Types,
   UpdateQuery,
   SaveOptions,
-  Connection, ClientSession,
+  Connection,
+  ClientSession,
 } from 'mongoose';
 import { AbstractDocument } from './abstract.schema';
 
@@ -25,9 +26,9 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
       ...document,
       _id: new Types.ObjectId(),
     });
-    return (
+    return ((
       await createdDocument.save(options)
-    ).toJSON() as unknown as TDocument;
+    ).toJSON() as unknown) as TDocument;
   }
 
   async findOne(filterQuery: FilterQuery<TDocument>): Promise<TDocument> {
@@ -73,7 +74,7 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
     return this.model.find(filterQuery, {}, { lean: true });
   }
 
-  async startTransaction():Promise<ClientSession> {
+  async startTransaction(): Promise<ClientSession> {
     const session = await this.connection.startSession();
     session.startTransaction();
     return session;

@@ -1,42 +1,49 @@
 import {Body, Controller, Get, Inject, Post, Req, UseGuards} from '@nestjs/common';
-import {BussesService} from "./busses.service";
-import {JwtAuthGuard, RmqService} from "@app/common";
-import {CreateBusDto} from "./dto/create-bus.dto";
-import {BookingsService} from "../../../orders/src/bookings/bookings.service";
-import {SharedServiceInterface} from "@app/common/interface/services/shared.service.interface";
-import {Ctx, MessagePattern, Payload, RmqContext} from "@nestjs/microservices";
-import {CreateBookingDto} from "../../../orders/src/bookings/dto/create-booking.dto";
-import {User} from "../../../auth/src/users/schemas/user.schema";
-import {Booking} from "../../../orders/src/bookings/entities/booking.entity";
-import {Bus} from "./entities/bus.entity";
-
+import {AuthGuard, Role} from "@app/common";
+import {ClientProxy} from "@nestjs/microservices";
+import {sendMicroserviceMessage} from "@app/common";
+import {ApiBearerAuth, ApiOperation, ApiTags} from "@nestjs/swagger";
+import {CreateBusDto} from "../../../products/src/busses/dto/create-bus.dto";
+import {Roles} from "../../../auth/src/decorators/roles.decorator";
+import {RolesGuard} from "../../../auth/src/guards/roles.guard";
+@ApiTags('Busses')
 @Controller('busses')
 export class BussesController {
     constructor(
-        private readonly bussesService: BussesService,
-        private readonly rmqService: RmqService,
-        @Inject('SharedServiceInterface')
-        private sharedService: SharedServiceInterface,
+        @Inject('BUS_SERVICE') private bussesService: ClientProxy,
     ) {}
 
-    @Post()
-    @UseGuards(JwtAuthGuard)
-    async createBuses(@Body() request: CreateBusDto){
-        return await this.bussesService.createBus(request);
+    @Post('/create')
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: 'Create a new bus',
+        description:
+            'Create a new bus. Only authenticated users with ONROAD role can access',
+    })
+    @UseGuards(AuthGuard,RolesGuard)
+    @Roles(Role.ONROAD)
+    async create(@Body() request: CreateBusDto) {
+        return sendMicroserviceMessage(
+            this.bussesService,
+            'create_buses',
+            request,
+        );
     }
-
     @Get()
-    @UseGuards(JwtAuthGuard)
-    async getBuses(){
-        return this.bussesService.getBuses();
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: 'Get my reservations',
+        description:
+            'Find Busses. Only authenticated users with ONROAD role can access.',
+    })
+    @Roles(Role.ONROAD)
+    @UseGuards(AuthGuard,RolesGuard)
+    getBuses() {
+        return sendMicroserviceMessage(
+            this.bussesService,
+            'get_busses',
+            {}
+        );
     }
 
-    @MessagePattern({ cmd: 'create_buses' })
-    async createBooking(
-        @Ctx() ctx: RmqContext,
-        @Payload() request: CreateBusDto
-    ): Promise<Bus> {
-        this.sharedService.acknowledgeMessage(ctx);
-        return await this.bussesService.createBus(request);
-    }
 }

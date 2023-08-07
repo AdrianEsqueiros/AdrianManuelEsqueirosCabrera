@@ -1,13 +1,13 @@
 import { firstValueFrom } from 'rxjs';
-import { ConversationRepositoryInterface } from '@app/shared/interfaces/repository/conversation.repository.interface';
-import { MessageRepositoryInterface } from '@app/shared/interfaces/repository/message.repository.interface';
-import { Injectable, Inject } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ChatServiceInterface } from './interfaces/chat.service.interface';
-import { ConversationEntity } from '@app/shared/entities/conversation.entity';
-import { MessageEntity } from '@app/shared/entities/message.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ClientProxy } from '@nestjs/microservices';
-import { UserEntity } from '@app/shared/entities/user.entity';
+import { ConversationRepositoryInterface } from './domain/persistance/conversation.repository.interface';
+import { MessageRepositoryInterface } from './domain/persistance/message.repository.interface';
+import { UserEntity } from '../../auth/src/domain/entity/user.entity';
+import { ConversationEntity } from './domain/entities/conversation.entity';
+import { MessageEntity } from './domain/entities/message.entity';
 
 @Injectable()
 export class ChatService implements ChatServiceInterface {
@@ -27,9 +27,7 @@ export class ChatService implements ChatServiceInterface {
       { id },
     );
 
-    const user = await firstValueFrom(ob$).catch((err) => console.error(err));
-
-    return user;
+    return await firstValueFrom(ob$).catch((err) => console.error(err));
   }
 
   async createConversation(
@@ -77,8 +75,6 @@ export class ChatService implements ChatServiceInterface {
 
   async getConversations(userId: number): Promise<any[]> {
     const result = await this.conversationRepository.getConversations(userId);
-    console.log('XD AQUI', result);
-
     return result.map((conv) => ({
       id: conv.id,
       userIds: conv.users.map((user) => ({

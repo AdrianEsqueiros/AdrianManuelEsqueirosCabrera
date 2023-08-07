@@ -1,25 +1,24 @@
-import { RedisCacheService } from '@app/shared/services/redis-cache.service';
+import { RedisCacheService } from '@app/common';
 import { Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
-  WebSocketGateway,
-  WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { TokenInterface } from 'apps/auth/src/interfaces/token.interface';
 import { firstValueFrom } from 'rxjs';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { Role } from '@app/shared/enums/role.enum';
+import { Role } from '@app/common';
 
 @WebSocketGateway({ cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
-    @Inject('PRESENCE_SERVICE') private readonly presenceService: ClientProxy,
     private readonly cache: RedisCacheService,
     private readonly chatService: ChatService,
   ) {}
@@ -35,12 +34,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const obeservable = this.authService.send<TokenInterface>(
+    const observable = this.authService.send<TokenInterface>(
       { cmd: 'decode-jwt' },
       { jwt },
     );
 
-    const result = await firstValueFrom(obeservable).catch((err) =>
+    const result = await firstValueFrom(observable).catch((err) =>
       console.error(err),
     );
 
@@ -79,23 +78,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.cache.set(`conversation-user-${user.id}`, conversationUser);
   }
 
-  private async getOnroadFriendDetails(id: number) {
-    const observable = this.presenceService.send(
-      { cmd: 'get-active-user' },
-      { id },
-    );
-
-    const activeFriend = await firstValueFrom(observable);
-
-    if (!activeFriend) return;
-
-    const friendsDetails = (await this.cache.get(
-      `conversation-user-${activeFriend.id}`,
-    )) as { id: number; socketId: string } | undefined;
-
-    return friendsDetails;
-  }
-
   @SubscribeMessage('get-conversations')
   async getConversations(socket: Socket) {
     const user = socket.data.user;
@@ -120,13 +102,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       user.id,
     );
 
-    const friendId = createdMessage.conversation.users.find(
+    const friend = createdMessage.conversation.users.find(
       (f) => f.id !== user.id,
-    ).id;
+    );
 
-    const friendDetails = await this.getOnroadFriendDetails(friendId);
+    if (!friend) return;
 
-    if (!friendDetails) return;
+    const friendDetails = await this.cache.get(
+      `conversation-user-${friend.id}`,
+    );
+
+    if (!friendDetails || !friendDetails.socketId) return;
 
     this.server.to(friendDetails.socketId).emit('new-message', {
       id: createdMessage.id,

@@ -1,21 +1,15 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  BadRequestException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 import * as bcrypt from 'bcrypt';
 import { AuthServiceInterface } from './interfaces/auth.service.interface';
-import { UserRepositoryInterface } from '@app/shared/interfaces/repository/users.repository.interface';
 import { TokenInterface } from './interfaces/token.interface';
-import { UserEntity } from '@app/shared/entities/user.entity';
-import { Role } from '@app/shared/enums/role.enum';
 import { CreateUserDto } from './dto/create-user.dto';
-import { SigninDto } from './dto/signin-dto';
+import { SignInDto } from './dto/sign-in-dto';
 import { RpcException } from '@nestjs/microservices';
+import { UserRepositoryInterface } from './domain/persistance/users.repository.interface';
+import { UserEntity } from './domain/entity/user.entity';
+import { Role } from '@app/common';
 
 @Injectable()
 export class AuthService implements AuthServiceInterface {
@@ -73,7 +67,7 @@ export class AuthService implements AuthServiceInterface {
     const hashedPassword = await this.hashPassword(dto.password);
 
     const savedUser = await this.userRepository.save({
-      ...dto, // Debido a que en la configuración que se hizo el ValidationPipe en main.ts, se ignoran los parámetros que no están definidos en el DTO
+      ...dto,
       password: hashedPassword,
     });
 
@@ -88,7 +82,7 @@ export class AuthService implements AuthServiceInterface {
     };
   }
 
-  async login(dto: SigninDto): Promise<{ access_token: string }> {
+  async login(dto: SignInDto): Promise<{ access_token: string }> {
     const user = await this.validateUser(dto.email, dto.password);
     if (!user) {
       throw new RpcException('El correo o la contraseña son incorrectos');
@@ -118,8 +112,7 @@ export class AuthService implements AuthServiceInterface {
   }
 
   async signJwtToken(payload: { role: string; sub: number }): Promise<string> {
-    const jwt = await this.jwtService.signAsync(payload);
-    return jwt;
+    return await this.jwtService.signAsync(payload);
   }
 
   async getUserById(id: number): Promise<UserEntity> {

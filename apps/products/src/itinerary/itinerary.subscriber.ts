@@ -5,10 +5,11 @@ import {
   InsertEvent,
 } from 'typeorm';
 import { Logger } from '@nestjs/common';
-import {Itinerary} from "./entities/itinerary.entity";
+import { Itinerary } from './entities/itinerary.entity';
 
 @EventSubscriber()
-export class ItinerarySubscriber implements EntitySubscriberInterface<Itinerary> {
+export class ItinerarySubscriber
+  implements EntitySubscriberInterface<Itinerary> {
   private readonly logger = new Logger(ItinerarySubscriber.name);
 
   constructor(dataSource: DataSource) {

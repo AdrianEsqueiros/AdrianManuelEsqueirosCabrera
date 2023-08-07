@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ConversationEntity } from '../entities/conversation.entity';
-import { ConversationRepositoryInterface } from '../interfaces/repository/conversation.repository.interface';
-import { BaseAbstractRepository } from './base/base.abstract.repository';
 import { Repository } from 'typeorm';
+import { ConversationEntity } from '../domain/entities/conversation.entity';
+import { BaseAbstractRepository } from '@app/common';
+import { ConversationRepositoryInterface } from '../domain/persistance/conversation.repository.interface';
 
 @Injectable()
 export class ConversationRepository
   extends BaseAbstractRepository<ConversationEntity>
-  implements ConversationRepositoryInterface
-{
+  implements ConversationRepositoryInterface {
   constructor(
     @InjectRepository(ConversationEntity)
     readonly conversationRepository: Repository<ConversationEntity>,

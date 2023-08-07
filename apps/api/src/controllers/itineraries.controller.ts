@@ -1,71 +1,89 @@
-import {BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards} from '@nestjs/common';
-import {ItinerariesService} from "./itineraries.service";
-import {JwtAuthGuard, RmqService} from "@app/common";
-import {CreateItineraryDto} from "./dto/create-itinerary.dto";
-import {Ctx, EventPattern, Payload, RmqContext} from "@nestjs/microservices";
-import {Column} from "typeorm";
-import {IsInt, IsNotEmpty} from "class-validator";
-// import {CreateItineraryRequest} from "./dto/create-itinerary.dto";
-//
+import {
+    Body,
+    Controller,
+    Get,
+    Inject,
+    Post, Put,
+    Query,
+    UseGuards
+} from '@nestjs/common';
+import {AuthGuard, Role} from "@app/common";
+import {ApiBearerAuth, ApiOperation, ApiTags} from "@nestjs/swagger";
+import {sendMicroserviceMessage} from "@app/common";
+import {CreateItineraryDto} from "../../../products/src/itinerary/dto/create-itinerary.dto";
+import {ClientProxy, Payload} from "@nestjs/microservices";
+import {Roles} from "../../../auth/src/decorators/roles.decorator";
+import {RolesGuard} from "../../../auth/src/guards/roles.guard";
+import {SearchItinerariesRequest} from "../../../products/src/itinerary/dto/search-itineraries.request";
+import {UpdateItineraryDto} from "../../../products/src/itinerary/dto/update-itinerary.dto";
+@ApiTags('Itineraries')
 @Controller('itineraries')
 export class ItinerariesController {
-//
     constructor(
-        private readonly itinerariesService: ItinerariesService,
+        @Inject('ITINERARIES_SERVICE') private itinerariesService: ClientProxy,
     ) {}
-//
-    @Post()
-    @UseGuards(JwtAuthGuard)
-    async createItineraries(@Body() request: CreateItineraryDto){
-        return this.itinerariesService.createItinerary(request)
-    }
     @Get()
-    async getItineraries(){
-        return this.itinerariesService.getItineraries();
+    @ApiOperation({
+        summary: 'Find itineraries',
+        description:
+            'Find all itineraries.',
+    })
+    getItineraries() {
+        return sendMicroserviceMessage(
+            this.itinerariesService,
+            'get_itineraries',
+            {}
+        );
+    }
+    @Post('/create')
+    @ApiOperation({
+        summary: 'Create a new itinerary',
+        description:
+            'Create a new itinerary.',
+    })
+    @ApiBearerAuth()
+    @Roles(Role.ONROAD)
+    @UseGuards(AuthGuard,RolesGuard)
+    async create(@Body() request: CreateItineraryDto) {
+        return sendMicroserviceMessage(
+            this.itinerariesService,
+            'create_itinerary',
+            request
+        );
     }
     @Get('/search')
-    async searchItineraries(
-        @Query('originCity') originCity: string,
-        @Query('destinationCity') destinationCity: string,
-    ) {
-        return this.itinerariesService.searchItineraries(originCity, destinationCity);
+    @ApiOperation({
+        summary: 'Get my reservations',
+        description:
+            'Search itineraries.',
+    })
+    searchItineraries(
+        @Query() searchDto: SearchItinerariesRequest,)
+    {
+        return sendMicroserviceMessage(
+            this.itinerariesService,
+            'search_itineraries',
+            searchDto
+        );
     }
-    @Get(':id')
-    async getItineraryById(@Param ('id')id:number){
-        try {
-            const itinerary= await this.itinerariesService.findBy(id);
-            if(itinerary){
-                return itinerary
-            }
-            else    {
-                throw new BadRequestException(`No se encontro Itinerario.`);
-            }
-        } catch (e){
-            throw e
-        }
-    }
-    @Patch(':id')
-    async updateItinerary(@Param('id') id: number, @Body() request: CreateItineraryDto){
-        return this.itinerariesService.update(id,request)
+    @Put('/update')
+    @ApiOperation({
+        summary: 'Update a itinerary',
+        description:
+            'Update a itinerary. Only authenticated users with ONROAD role can access.',
+    })
+    @Roles(Role.ONROAD)
+    @UseGuards(AuthGuard,RolesGuard)
+    @ApiBearerAuth()
+    updateItinerary(
+        @Body() updateDto: UpdateItineraryDto,)
+    {
+        return sendMicroserviceMessage(
+            this.itinerariesService,
+            'update_itineraries',
+            updateDto
+        );
     }
 
-    @EventPattern('booking_created')
-    async itineraryUpdated(@Payload() data: any, @Ctx() context: RmqContext){
-        const itinerary = await this.itinerariesService.findBy(data.itinerary_id)
-        const seatsRemain =itinerary.available_seats - data.seats_count
-        if (seatsRemain < 0) {
-            throw new BadRequestException('No hay suficientes asientos disponibles.');
-        }
-        try {
-            await this.itinerariesService.updateSeats(data.itinerary_id,{
-                available_seats:seatsRemain
-            })
-        }
-        catch (e)
-        {
-            throw e;
-        }
-
-    }
 
 }

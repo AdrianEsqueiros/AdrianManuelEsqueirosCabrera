@@ -1,37 +1,41 @@
-import {Body, Controller, Get, Inject, Post, Req, UseGuards} from '@nestjs/common';
-import {BookingsService} from "./bookings.service";
-import {JwtAuthGuard} from "@app/common";
-import {CreateBookingDto} from "./dto/create-booking.dto";
-import {CurrentUser} from "../../../auth/src/current-user.decorator";
-import {User} from "../../../auth/src/users/schemas/user.schema";
-import {Ctx, MessagePattern, Payload, RmqContext} from "@nestjs/microservices";
-import {SharedServiceInterface} from "@app/common/interface/services/shared.service.interface";
-import {Booking} from "./entities/booking.entity";
+import { Body, Controller, Inject, Post, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard, Role } from '@app/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { sendMicroserviceMessage } from '@app/common';
+import { CreateBookingDto } from '../../../orders/src/bookings/dto/create-booking.dto';
+import { Request } from 'express';
+import { Roles } from '../../../auth/src/decorators/roles.decorator';
+import { RolesGuard } from '../../../auth/src/guards/roles.guard';
+import { BOOKING_SERVICE } from '@app/common/rmq/services';
 
+@ApiTags('Bookings')
 @Controller('bookings')
 export class BookingsController {
+  constructor(
+    @Inject('BOOKING_SERVICE') private bookingService: ClientProxy,
+    @Inject('ITINERARIES_SERVICE') private itinerariesService: ClientProxy,
+    @Inject(BOOKING_SERVICE) private bookingClient: ClientProxy,
+  ) {}
 
-    constructor(
-        private readonly bookingService:BookingsService,
-        @Inject('SharedServiceInterface')
-        private sharedService: SharedServiceInterface,
-    ) {
-    }
-    @Post()
-    @UseGuards(JwtAuthGuard)
-    async createBooking(@Body() request: CreateBookingDto,@CurrentUser() user: User,@Req() req: any) {
-        try {
-            return await this.bookingService.createBooking(request,user, req.cookies?.Authentication);
-        }catch (e) {
-            throw e
-        }
-    }
-    @MessagePattern({ cmd: 'create_booking' })
-    async createSeat(
-        @Ctx() ctx: RmqContext,
-        @Payload() dto: CreateBookingDto,user:User,authentication:string
-    ): Promise<Booking> {
-        this.sharedService.acknowledgeMessage(ctx);
-        return await this.bookingService.createBooking(dto, user, authentication);
-    }
+  @Post('/create')
+  @ApiOperation({
+    summary: 'Make a reservation',
+    description: 'Make a reservation.',
+  })
+  @ApiBearerAuth()
+  @Roles(Role.PASSENGER)
+  @UseGuards(AuthGuard, RolesGuard)
+  async create(@Body() dto: CreateBookingDto, @Req() req: Request) {
+    const itinerary = await sendMicroserviceMessage(
+      this.itinerariesService,
+      'get_itineraries_by_id',
+      dto.itineraryId,
+    ).toPromise();
+    return sendMicroserviceMessage(this.bookingService, 'create_booking', {
+      ...dto,
+      passengerId: req.user.id,
+      itinerary,
+    });
+  }
 }

@@ -1,14 +1,12 @@
-import { Module, DynamicModule } from '@nestjs/common';
-import {ConfigModule, ConfigService} from '@nestjs/config';
-import { SharedService } from '../services/shared.service';
+import { DynamicModule, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
+import { RmqService } from '@app/common';
 
 @Module({
-  imports: [
-
-  ],
-  providers: [SharedService,ConfigService],
-  exports: [SharedService,ConfigService],
+  imports: [],
+  providers: [RmqService],
+  exports: [RmqService],
 })
 export class SharedModule {
   static registerRmq(service: string, queue: string): DynamicModule {
@@ -16,7 +14,7 @@ export class SharedModule {
       {
         provide: service,
         useFactory: (configService: ConfigService) => {
-          const client =  ClientProxyFactory.create({
+          return ClientProxyFactory.create({
             transport: Transport.RMQ,
             options: {
               urls: [configService.get<string>('RABBIT_MQ_URI')],
@@ -26,13 +24,10 @@ export class SharedModule {
               },
             },
           });
-          console.log(client)
-          return client;
         },
         inject: [ConfigService],
       },
     ];
-  console.log(queue)
     return {
       module: SharedModule,
       providers,

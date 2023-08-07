@@ -1,29 +1,35 @@
-import {
-  IsInt,
-  IsNotEmpty,
-  IsString,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
 import { Column } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateBusDto {
-  @Column({ unique: true })
+  @ApiProperty({
+    example: 'ABC123',
+    description: 'License plate of the bus',
+    uniqueItems: true,
+  })
   @IsNotEmpty()
   @IsString()
-  license_plate: string;
+  licensePlate: string;
 
-  @Column({ unique: true })
+  @ApiProperty({
+    example: 'John Doe',
+    description: 'Name of the bus driver',
+    uniqueItems: true,
+  })
   @IsNotEmpty()
   @IsString()
-  bus_driver: string;
+  busDriver: string;
 
-  @Column()
+  @ApiProperty({
+    example: 30,
+    description: 'Total number of seats in the bus',
+    minimum: 20,
+    maximum: 35,
+  })
   @IsNotEmpty()
   @IsInt()
   @Min(20)
   @Max(35)
-  total_seats: number;
-
-
+  totalSeats: number;
 }

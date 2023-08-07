@@ -1,41 +1,42 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-
-import { SharedModule } from '@app/shared/modules/shared.module';
-import { UserRepository } from '@app/shared/respositories/user.repository';
-import { DatabaseModule } from '@app/shared/modules/database.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-import { SharedService } from '@app/shared/services/shared.service';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigType } from '@nestjs/config';
-import config from '../../../config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtGuard } from './guards/jwt.guard';
-import { ALL_ENTITIES } from '@app/shared/entities';
+import { SharedModule } from '@app/common';
+import { DatabaseSQLModule } from '@app/common';
+import { UserEntity } from './domain/entity/user.entity';
+import { RmqService } from '@app/common';
+import { UserRepository } from './reporsitory/user.repository';
+import { ConversationEntity } from '../../chat/src/domain/entities/conversation.entity';
+import { MessageEntity } from '../../chat/src/domain/entities/message.entity';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: './apps/auth/.env',
+    }),
     SharedModule,
-
     JwtModule.registerAsync({
-      useFactory: (configService: ConfigType<typeof config>) => ({
-        secret: configService.auth.access,
+      imports: undefined,
+      useFactory: () => ({
+        secret: 'secret',
         signOptions: {
           expiresIn: '1d',
         },
       }),
-      inject: [config.KEY],
     }),
-    DatabaseModule,
-    TypeOrmModule.forFeature(ALL_ENTITIES),
+    DatabaseSQLModule,
+    TypeOrmModule.forFeature([UserEntity, ConversationEntity, MessageEntity]),
   ],
   controllers: [AuthController],
   providers: [
     JwtGuard,
     JwtStrategy,
-
     {
       provide: 'UserRepositoryInterface',
       useClass: UserRepository,
@@ -46,11 +47,7 @@ import { ALL_ENTITIES } from '@app/shared/entities';
     },
     {
       provide: 'SharedServiceInterface',
-      useClass: SharedService,
-    },
-    {
-      provide: 'AuthServiceInterface',
-      useClass: AuthService,
+      useClass: RmqService,
     },
   ],
 })

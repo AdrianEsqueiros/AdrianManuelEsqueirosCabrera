@@ -14,13 +14,13 @@ declare module 'express' {
   }
 }
 @Injectable()
-export class JwtAuthGuard implements CanActivate {
+export class AuthGuard implements CanActivate {
   constructor(
-      @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
+    @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
   ) {}
 
   canActivate(
-      context: ExecutionContext,
+    context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     if (context.getType() !== 'http') {
       return false;
@@ -39,20 +39,19 @@ export class JwtAuthGuard implements CanActivate {
     const [, jwt] = authHeaderParts;
 
     return this.authService.send({ cmd: 'verify-jwt' }, { jwt }).pipe(
-        switchMap((result) => {
-          if (!result.exp) return of(false);
+      switchMap((result) => {
+        if (!result.exp) return of(false);
 
-          const TOKEN_EXP_MS = result.exp * 1000;
+        const TOKEN_EXP_MS = result.exp * 99999;
 
-          const isJwtValid = Date.now() < TOKEN_EXP_MS;
-          context.switchToHttp().getRequest().user = result;
-
-          return of(isJwtValid);
-        }),
-        catchError(() => {
-          console.log('error');
-          throw new UnauthorizedException();
-        }),
+        const isJwtValid = Date.now() < TOKEN_EXP_MS;
+        context.switchToHttp().getRequest().user = result;
+        return of(isJwtValid);
+      }),
+      catchError(() => {
+        console.log('Unauthorized');
+        throw new UnauthorizedException();
+      }),
     );
   }
 }

@@ -1,21 +1,29 @@
-import { Column, Entity } from 'typeorm';import {AbstractEntity} from "@app/common/databaseSQL/abstract.entity";
-import {SeatType} from "../enums/seatType";
+import { Column, Entity } from 'typeorm';
+import { AbstractEntity } from '@app/common';
+import { SeatType } from '../enums/seatType';
 
-@Entity({name:'bookings'})
+@Entity({ name: 'bookings' })
 export class Booking extends AbstractEntity<Booking> {
+  @Column({ name: 'itinerary_id' })
+  itineraryId: number;
 
-    @Column()
-    itinerary_id: number;
+  @Column({ name: 'passenger_id' })
+  passengerId: number;
 
-    @Column()
-    passenger_id: string;
+  @Column({ type: 'enum', enum: SeatType, name: 'seat_type' })
+  seatType: string;
 
-    @Column({ type: 'enum', enum: SeatType})
-    seat_type: string;
+  @Column({ name: 'seats_count' })
+  seatsCount: number;
 
-    @Column()
-    seats_count: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'total_price' })
+  totalPrice: number;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    total_price: number;
+  @Column({
+    type: 'timestamp',
+    precision: 0,
+    default: () => 'CURRENT_TIMESTAMP(0)',
+    update: false,
+  })
+  created_at: string;
 }
